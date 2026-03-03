@@ -163,3 +163,179 @@
 </script>
 </body>
 </html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>WASD Neon Platformer</title>
+    <style>
+        body { margin: 0; background-color: #222; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: sans-serif; color: white; overflow: hidden; }
+        canvas { border: 4px solid #555; background-color: #00d2ff; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+        .ui { position: absolute; top: 20px; text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="ui">
+        <h1>WASD Neon Leap!</h1>
+        <p>W to Jump | A & D to Move | S to Stomp</p>
+    </div>
+    <canvas id="gameCanvas"></canvas>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = 800;
+    canvas.height = 400;
+
+    const gravity = 0.8;
+    const keys = {};
+
+    const player = {
+        x: 50, y: 300, width: 30, height: 30,
+        color: '#FF00FF', dx: 0, dy: 0,
+        jumpPower: -15, grounded: false
+    };
+
+    const platforms = [
+        { x: 0, y: 370, width: 800, height: 30, color: '#33ff00' },
+        { x: 200, y: 280, width: 150, height: 20, color: '#ffcc00' },
+        { x: 450, y: 200, width: 150, height: 20, color: '#ffcc00' },
+        { x: 150, y: 130, width: 150, height: 20, color: '#ffcc00' }
+    ];
+
+    const goal = { x: 40, y: 70, width: 40, height: 40, color: '#FFF000' };
+
+    window.addEventListener('keydown', (e) => keys[e.code] = true);
+    window.addEventListener('keyup', (e) => keys[e.code] = false);
+
+    function update() {
+        // Move Left/Right
+        if (keys['KeyD']) player.dx = 5;
+        else if (keys['KeyA']) player.dx = -5;
+        else player.dx = 0;
+
+        // Jump
+        if (keys['KeyW'] && player.grounded) {
+            player.dy = player.jumpPower;
+            player.grounded = false;
+        }
+
+        // S for "Stomp" (Fast Fall)
+        if (keys['KeyS'] && !player.grounded) {
+            player.dy += 2; 
+        }
+
+        player.dy += gravity;
+        player.x += player.dx;
+        player.y += player.dy;
+
+        player.grounded = false;
+        for (let plat of platforms) {
+            if (player.x < plat.x + plat.width && player.x + player.width > plat.x &&
+                player.y < plat.y + plat.height && player.y + player.height > plat.y) {
+                if (player.dy > 0) {
+                    player.grounded = true;
+                    player.dy = 0;
+                    player.y = plat.y - player.height;
+                }
+            }
+        }
+
+        if (player.x < goal.x + goal.width && player.x + player.width > goal.x &&
+            player.y < goal.y + goal.height && player.y + player.height > goal.y) {
+            alert("VICTORY!");
+            player.x = 50; player.y = 300;
+        }
+
+        if (player.x < 0) player.x = 0;
+        if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        platforms.forEach(plat => {
+            ctx.fillStyle = plat.color;
+            ctx.fillRect(plat.x, plat.y, plat.width, plat.height);
+        });
+        ctx.fillStyle = goal.color;
+        ctx.fillRect(goal.x, goal.y, goal.width, goal.height);
+        ctx.fillStyle = player.color;
+        ctx.fillRect(player.x, player.y, player.width, player.height);
+        ctx.fillStyle = "white";
+        ctx.fillRect(player.x + (player.dx >= 0 ? 20 : 5), player.y + 5, 5, 5);
+    }
+
+    function gameLoop() {
+        update();
+        draw();
+        requestAnimationFrame(gameLoop);
+    }
+    gameLoop();
+</script>
+</body>
+</html><!DOCTYPE html>
+<html>
+<head>
+    <title>My First 3D Game</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #000; }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+    <script type="module">
+        import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.module.min.js';
+
+        // 1. Create the Scene
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // 2. Create the Player (A Neon Cube)
+        const geometry = new THREE.BoxGeometry(1, 1, 1);
+        const material = new THREE.MeshStandardMaterial({ color: 0xFF00FF, emissive: 0xFF00FF });
+        const player = new THREE.Mesh(geometry, material);
+        scene.add(player);
+
+        // 3. Add a Floor
+        const floorGeo = new THREE.PlaneGeometry(10, 10);
+        const floorMat = new THREE.MeshStandardMaterial({ color: 0x33ff00 });
+        const floor = new THREE.Mesh(floorGeo, floorMat);
+        floor.rotation.x = -Math.PI / 2; // Lay it flat
+        floor.position.y = -1;
+        scene.add(floor);
+
+        // 4. Add Lights
+        const light = new THREE.PointLight(0xffffff, 50, 100);
+        light.position.set(5, 5, 5);
+        scene.add(light);
+        scene.add(new THREE.AmbientLight(0x404040)); // Soft white light
+
+        camera.position.z = 5;
+        camera.position.y = 2;
+        camera.lookAt(0,0,0);
+
+        // 5. Movement Logic
+        const keys = {};
+        window.addEventListener('keydown', (e) => keys[e.code] = true);
+        window.addEventListener('keyup', (e) => keys[e.code] = false);
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            if (keys['KeyW']) player.position.z -= 0.1;
+            if (keys['KeyS']) player.position.z += 0.1;
+            if (keys['KeyA']) player.position.x -= 0.1;
+            if (keys['KeyD']) player.position.x += 0.1;
+
+            // Make the cube spin a little so it looks 3D!
+            player.rotation.y += 0.01;
+
+            renderer.render(scene, camera);
+        }
+        animate();
+    </script>
+</body>
+</html>
